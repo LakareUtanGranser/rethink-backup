@@ -70,16 +70,28 @@ EOF
 
 source ./out
 
-RESTORE_PATH="\$1"
+restore_path=\$(echo "$DUMP_LOCATION/\$(ls $DUMP_LOCATION/ -N1 | sort | tail -n 1)")
+force=""
+
+while getopts ":f:p:" opt; do
+  case "\$opt" in
+    f) force="\$OPTARG" ;;
+    p) restore_path="\$OPTARG" ;;
+  esac
+done; shift \$((OPTIND-1)); [ "\$1" = "--" ] && shift
+
+if [[ ! -z "\$force" ]]; then
+  force="--force"
+fi
 
 _main() {
-  if [ -z "\$RESTORE_PATH" ]; then
-    eerr "path not set"
+  if [ -z "\$restore_path" ]; then
+    eerr "path not set, use --p"
     return 1
   fi
 
-  ACTION="rethinkdb-restore --connect=$RETHINK_HOST \$RESTORE_PATH"
-  einf "restore from \$RESTORE_PATH"
+  ACTION="rethinkdb-restore --connect=$RETHINK_HOST \$restore_path \$force"
+  einf "restore from \$restore_path"
 
   if \${ACTION} ;then
     einf "restore done"
