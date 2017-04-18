@@ -20,7 +20,7 @@ _main() {
   cat <<EOF > /opt/bin/helper.sh
 #!/bin/bash
 function pdate {
-  echo \$(date +%Y-%m-%dT%H:%M:%S)
+  echo \$(date +%Y-%m-%dT%H:%M:%S)/opt/bin/
   return 0
 }
 function einf {
@@ -82,7 +82,8 @@ _main() {
 
   einf "backup succeeded"
 
-  ./cleanup.sh
+  /opt/bin/cleanup.sh
+  
   return 0
 }
 
