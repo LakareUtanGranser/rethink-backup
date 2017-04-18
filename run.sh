@@ -83,7 +83,7 @@ _main() {
   einf "backup succeeded"
 
   /opt/bin/cleanup.sh
-  
+
   return 0
 }
 
@@ -142,11 +142,11 @@ source /opt/bin/helper.sh
 
 einf "running cleanup"
 
-while [ \$(ls $DUMP__LOCATION/ -N1 | wc -l) -gt $DUMP_LIMIT ]; do
-  TO_DELETE=\$(ls $DUMP__LOCATION/ -N1 | sort -t . -k 2 | head -n 1)
-  estd "removing \$TO_DELETE ..."
-  rm -f $DUMP__LOCATION/\$TO_DELETE
-  estd "\$TO_DELETE is removed"
+while [ \$(ls $DUMP__LOCATION/ -N1 | wc -l) -gt $DUMP__LIMIT ]; do
+  to_delete=\$(ls $DUMP__LOCATION/ -N1 | sort -t . -k 2 | head -n 1)
+  estd "removing \$to_delete ..."
+  rm -f $DUMP__LOCATION/\$to_delete
+  estd "\$to_delete is removed"
 done
 EOF
 
