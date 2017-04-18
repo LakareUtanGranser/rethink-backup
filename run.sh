@@ -56,7 +56,7 @@ _main() {
 
   einf "backup succeeded"
 
-  ./cleanup.sh
+  # ./cleanup.sh
   return 0
 }
 
