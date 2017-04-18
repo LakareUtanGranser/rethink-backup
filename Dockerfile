@@ -5,20 +5,27 @@ RUN apt-get update && \
   rm -rf /var/lib/apt/lists/*
 
 # https://pypi.python.org/pypi/rethinkdb
-ENV RETHINK_VERSION 2.3.0
-ENV RETHINK_HOST localhost:28015
+ENV RETHINK__VERSION 2.3.0
+ENV RETHINK__HOST localhost:28015
+ENV DUMP__NAME dump
+ENV DUMP__LIMIT 14
+ENV DUMP__LOCATION /tmp/backup
+
+# set to "true" to run backup oon start
+ENV RUN_ON_STARTUP "false"
 
 # https://en.wikipedia.org/wiki/Cron#Overview
 ENV CRON_TIME "0 4 */2 * *"
 
-ENV DUMP_NAME dump
-ENV DUMP_LIMIT 14
-ENV DUMP_LOCATION /tmp/backup
+RUN pip install rethinkdb==$RETHINK__VERSION
 
-RUN pip install rethinkdb==$RETHINK_VERSION
+ADD run.sh /opt/run.sh
+RUN chmod +x /opt/run.sh
 
-WORKDIR /app
+WORKDIR "/opt"
 
-COPY ./run.sh /app/run.sh
+VOLUME "/opt/backup"
 
-CMD ./run.sh
+ENTRYPOINT "/opt/run.sh"
+
+CMD "opt/run.sh"

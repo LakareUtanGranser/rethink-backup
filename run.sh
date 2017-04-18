@@ -1,8 +1,12 @@
 #!/bin/bash
 
-RETHINK_HOST=$([[ ! -z $RETHINK_HOST ]] && echo "$RETHINK_HOST" || echo "localhost:28015")
-DUMP_NAME=$([[ ! -z $DUMP_NAME ]] && echo "$DUMP_NAME" || echo "dump")
-DUMP_LOCATION=$([[ ! -z $DUMP_LOCATION ]] && echo "$DUMP_LOCATION" || echo "/tmp/backup")
+set -e
+
+RETHINK__HOST=${RETHINK__HOST:-"localhost:28015"}
+DUMP__NAME=${DUMP__NAME:-"dump"}
+DUMP__LOCATION=${DUMP__LOCATION:-"/tmp/backup"}
+DUMP__LIMIT=${DUMP__LIMIT:-"10"}
+RUN_ON_STARTUP=${RUN_ON_STARTUP:-"false"}
 
 _main() {
   if [[ ! -z $(ps aux|grep [c]ron) ]]; then
@@ -11,7 +15,7 @@ _main() {
     return 0
   fi
 
-  cat <<EOF > out
+  cat <<EOF > /opt/bin/helper.sh
 #!/bin/bash
 function pdate {
   echo \$(date +%Y-%m-%dT%H:%M:%S)
@@ -23,34 +27,35 @@ function einf {
 }
 function eerr {
   echo "!!> \$1 @ \$(pdate)" 1>&2
-  return 0
+  return 1
 }
 function estd {
   echo "  > \$1"
-  return 0
+  return 1
 }
 EOF
-  chmod u+x out
 
-  source ./out
+  chmod u+x /opt/bin/helper.sh
+  source /opt/bin/helper.sh
 
-  estd "creating dump location ($DUMP_LOCATION)"
-  mkdir -p $DUMP_LOCATION
+  if [[ ! -d "$DUMP__LOCATION" ]]; then
+    estd "creating dump location ($DUMP__LOCATION)"
+    mkdir -p $DUMP__LOCATION
+  fi
 
   estd "generate backup script"
-  cat <<EOF > backup.sh
+  cat <<EOF > /opt/bin/backup.sh
 #!/bin/bash
 
-source ./out
+source /opt/bin/helper.sh
 
-FILE=$DUMP_LOCATION/$DUMP_NAME\_\$(pdate).tar.gz
-ACTION="rethinkdb-dump --connect=$RETHINK_HOST --file=\$FILE"
+dump_file=$DUMP__LOCATION/$DUMP__NAME.\$(date +%Y%m%d%H%M).tar.gz
 
 _main() {
-  einf "backup \$FILE"
-  if ! \${ACTION}; then
+  einf "backup \$dump_file"
+  if ! rethinkdb-dump --connect=$RETHINK__HOST --file=\$dump_file ; then
     eerr "backup failed"
-    rm -f \$FILE
+    rm -f \$dump_file
     return 1
   fi
 
@@ -62,15 +67,15 @@ _main() {
 
 _main
 EOF
-  chmod u+x backup.sh
+  chmod u+x /opt/bin/backup.sh
 
   estd "generate restore script"
-  cat <<EOF > restore.sh
+  cat <<EOF > /opt/bin/restore.sh
 #!/bin/bash
 
-source ./out
+source /opt/bin/helper.sh
 
-restore_path=\$(echo "$DUMP_LOCATION/\$(ls $DUMP_LOCATION/ -N1 | sort | tail -n 1)")
+restore_path=""
 force=""
 
 while getopts ":f:p:" opt; do
@@ -90,10 +95,9 @@ _main() {
     return 1
   fi
 
-  ACTION="rethinkdb-restore --connect=$RETHINK_HOST \$restore_path \$force"
   einf "restore from \$restore_path"
 
-  if \${ACTION} ;then
+  if rethinkdb-restore --connect=$RETHINK__HOST \$restore_path \$force ;then
     einf "restore done"
     return 0
   else
@@ -104,33 +108,38 @@ _main() {
 
 _main
 EOF
-  chmod u+x restore.sh
+
+  chmod u+x /opt/bin/restore.sh
 
   estd "generate cleanup script"
-  cat <<EOF > cleanup.sh
+  cat <<EOF > /opt/bin/cleanup.sh
 #!/bin/bash
 
-source ./out
+source /opt/bin/helper.sh
 
 einf "running cleanup"
 
-while [ \$(ls $DUMP_LOCATION/ -N1 | wc -l) -gt $DUMP_LIMIT ]; do
-  TO_DELETE=\$(ls $DUMP_LOCATION/ -N1 | sort | head -n 1)
+while [ \$(ls $DUMP__LOCATION/ -N1 | wc -l) -gt $DUMP_LIMIT ]; do
+  TO_DELETE=\$(ls $DUMP__LOCATION/ -N1 | sort | head -n 1)
   estd "removing \$TO_DELETE ..."
-  rm -f $DUMP_LOCATION/\$TO_DELETE
+  rm -f $DUMP__LOCATION/\$TO_DELETE
   estd "\$TO_DELETE is removed"
 done
 EOF
-  chmod u+x cleanup.sh
+
+  chmod u+x /opt/bin/cleanup.sh
 
   estd "starting logger"
   touch /var/log/backup.log
   tail -f /var/log/backup.log &
 
-  echo "$CRON_TIME /app/backup.sh >> /var/log/backup.log 2>&1" > crontab.conf
+  if [ "$RUN_ON_STARTUP" == "true" ]; then
+    /opt/bin/backup.sh
+  fi
 
-  crontab crontab.conf
-  estd "running rethinkdb backups at $CRON_TIME"
+  echo -e "$CRON_TIME /opt/bin/backup.sh >> /var/log/backup.log 2>&1" | crontab -
+
+  estd "running postgres backups at $CRON_TIME"
 
   exec cron -f
   exit 0
