@@ -15,6 +15,8 @@ _main() {
     return 0
   fi
 
+  mkdir -p /opt/bin
+
   cat <<EOF > /opt/bin/helper.sh
 #!/bin/bash
 function pdate {
@@ -31,11 +33,11 @@ function eerr {
 }
 function estd {
   echo "  > \$1"
-  return 1
+  return 0
 }
 EOF
 
-  chmod u+x /opt/bin/helper.sh
+  chmod +x /opt/bin/helper.sh
   source /opt/bin/helper.sh
 
   if [[ ! -d "$DUMP__LOCATION" ]]; then
@@ -52,8 +54,27 @@ source /opt/bin/helper.sh
 dump_file=$DUMP__LOCATION/$DUMP__NAME.\$(date +%Y%m%d%H%M).tar.gz
 
 _main() {
+  _run() {
+    local n=0
+    local retries=2
+    local status=1
+
+    until [[ \$n -ge \$retries ]]; do
+      if rethinkdb-dump --connect=$RETHINK__HOST --file=\$dump_file ; then
+        status=0
+        break
+      fi
+      ((n++))
+      estd "retry \$n"
+      sleep 5
+    done
+
+    return \$status
+  }
+
   einf "backup \$dump_file"
-  if ! rethinkdb-dump --connect=$RETHINK__HOST --file=\$dump_file ; then
+
+  if ! _run ; then
     eerr "backup failed"
     rm -f \$dump_file
     return 1
@@ -61,13 +82,14 @@ _main() {
 
   einf "backup succeeded"
 
-  # ./cleanup.sh
+  ./cleanup.sh
   return 0
 }
 
 _main
 EOF
-  chmod u+x /opt/bin/backup.sh
+
+  chmod +x /opt/bin/backup.sh
 
   estd "generate restore script"
   cat <<EOF > /opt/bin/restore.sh
@@ -109,7 +131,7 @@ _main() {
 _main
 EOF
 
-  chmod u+x /opt/bin/restore.sh
+  chmod +x /opt/bin/restore.sh
 
   estd "generate cleanup script"
   cat <<EOF > /opt/bin/cleanup.sh
@@ -120,14 +142,14 @@ source /opt/bin/helper.sh
 einf "running cleanup"
 
 while [ \$(ls $DUMP__LOCATION/ -N1 | wc -l) -gt $DUMP_LIMIT ]; do
-  TO_DELETE=\$(ls $DUMP__LOCATION/ -N1 | sort | head -n 1)
+  TO_DELETE=\$(ls $DUMP__LOCATION/ -N1 | sort -t . -k 2 | head -n 1)
   estd "removing \$TO_DELETE ..."
   rm -f $DUMP__LOCATION/\$TO_DELETE
   estd "\$TO_DELETE is removed"
 done
 EOF
 
-  chmod u+x /opt/bin/cleanup.sh
+  chmod +x /opt/bin/cleanup.sh
 
   estd "starting logger"
   touch /var/log/backup.log
