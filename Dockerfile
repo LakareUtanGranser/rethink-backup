@@ -11,8 +11,8 @@ ENV DUMP__NAME dump
 ENV DUMP__LIMIT 14
 ENV DUMP__LOCATION /opt/backup
 
-# set to "true" to run backup oon start
-ENV RUN_ON_STARTUP "false"
+# set to "true" to run backup on start
+ENV RUN_ON_STARTUP false
 
 # https://en.wikipedia.org/wiki/Cron#Overview
 ENV CRON_TIME "0 4 */2 * *"

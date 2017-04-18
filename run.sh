@@ -20,7 +20,7 @@ _main() {
   cat <<EOF > /opt/bin/helper.sh
 #!/bin/bash
 function pdate {
-  echo \$(date +%Y-%m-%dT%H:%M:%S)/opt/bin/
+  echo \$(date +%Y-%m-%dT%H:%M:%S)
   return 0
 }
 function einf {
