@@ -9,7 +9,7 @@ ENV RETHINK__VERSION 2.3.0
 ENV RETHINK__HOST localhost:28015
 ENV DUMP__NAME dump
 ENV DUMP__LIMIT 14
-ENV DUMP__LOCATION /tmp/backup
+ENV DUMP__LOCATION /opt/backup
 
 # set to "true" to run backup oon start
 ENV RUN_ON_STARTUP "false"
