@@ -7,6 +7,9 @@ RUN apt-get update && \
 ARG RETHINK__VERSION
 ARG LOCATION
 
+ENV LOCATION $LOCATION
+ENV RETHINK__VERSION $RETHINK__VERSION
+
 # https://pypi.python.org/pypi/rethinkdb
 ENV RETHINK__HOST localhost:28015
 ENV DUMP__NAME dump
