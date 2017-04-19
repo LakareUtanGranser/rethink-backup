@@ -7,8 +7,8 @@ RUN apt-get update && \
 ARG RETHINK__VERSION
 ARG LOCATION
 
-ENV LOCATION $LOCATION
-ENV RETHINK__VERSION $RETHINK__VERSION
+ENV LOCATION ${LOCATION:-"Europe/Stockholm"}
+ENV RETHINK__VERSION ${RETHINK__VERSION:-"2.3.0"}
 
 # https://pypi.python.org/pypi/rethinkdb
 ENV RETHINK__HOST localhost:28015
@@ -24,7 +24,7 @@ ENV CRON_TIME "0 4 */2 * *"
 
 RUN pip install rethinkdb==$RETHINK__VERSION
 
-RUN echo "$LOCATION" > /etc/timezone && \
+RUN echo $LOCATION > /etc/timezone && \
   cp /usr/share/zoneinfo/$LOCATION /etc/localtime
 
 ADD run.sh /opt/run.sh
