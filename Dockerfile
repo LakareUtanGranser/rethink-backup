@@ -4,8 +4,10 @@ RUN apt-get update && \
   apt-get install -y --no-install-recommends cron && \
   rm -rf /var/lib/apt/lists/*
 
+ARG RETHINK__VERSION
+ARG LOCATION
+
 # https://pypi.python.org/pypi/rethinkdb
-ENV RETHINK__VERSION 2.3.0
 ENV RETHINK__HOST localhost:28015
 ENV DUMP__NAME dump
 ENV DUMP__LIMIT 14
@@ -18,6 +20,9 @@ ENV RUN_ON_STARTUP false
 ENV CRON_TIME "0 4 */2 * *"
 
 RUN pip install rethinkdb==$RETHINK__VERSION
+
+RUN echo "$LOCATION" > /etc/timezone && \
+  cp /usr/share/zoneinfo/$LOCATION /etc/localtime
 
 ADD run.sh /opt/run.sh
 RUN chmod +x /opt/run.sh
