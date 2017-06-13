@@ -19,6 +19,9 @@ _main() {
 
   cat <<EOF > /opt/bin/helper.sh
 #!/bin/bash
+
+export PATH=$PATH:/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
 function pdate {
   echo \$(date +%Y-%m-%dT%H:%M:%S)
   return 0
